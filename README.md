@@ -13,7 +13,7 @@ Version of socketio and engineio must be as follows:
 
 ### First time
 
-1. Select the Pytho.3.11 as interpreter
+1. Select the Python.3.11 as interpreter
 2. Run the command
 
    ```bash
