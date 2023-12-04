@@ -17,10 +17,10 @@ def load_image(image_path: Path) -> np.ndarray:
     """
     # Load image using OpenCV
     image = cv2.imread(str(image_path))
+    assert image is not None, f"{image_path}"
 
     # Convert BGR to RGB format
-    if image is not None:
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     return image
 
@@ -86,7 +86,7 @@ def batch_generator(
         x: pd.DataFrame,
         y: pd.Series,
         batch_size: int,
-        use_augmentations: bool = False,
+        is_eval: bool = False,
         use_left: bool = True,
         use_right: bool = True,
         image_height: int = 66,
@@ -97,7 +97,7 @@ def batch_generator(
 
     :param data: DataFrame containing image paths and steering angles.
     :param batch_size: Number of image sets to include in each batch.
-    :param use_augmentations: Boolean indicating whether to apply augmentations.
+    :param is_eval: ...
     :param use_left: Boolean indicating whether to include left images.
     :param use_right: Boolean indicating whether to include right images.
     :yield: A batch of images and corresponding steering angles.
@@ -105,12 +105,15 @@ def batch_generator(
 
     def _prepare_image(path: str):
         image = preprocess_img(load_image(Path(path)), image_width=image_width, image_height=image_height)
-        if use_augmentations:
+        if not is_eval:
             image = apply_augmentations(image)
         image = normalize_image(image)
         return image
 
-    for _ in count(0, 1):
+    for epoch in count(0, 1):
+        if is_eval and epoch >= 1:
+            break
+
         images, angles = [], []
         for idx in np.random.permutation(x.shape[0]):
             center, left, right = x[['center', 'left', 'right']].iloc[idx]
@@ -143,15 +146,20 @@ def batch_generator(
 
 
 if __name__ == "__main__":
-    from data_processing_testing import load_data
+    from model_rimma import load_data
 
-    X_train, X_valid, y_train, y_valid = load_data()
+    data = load_data(
+        {"data_directory": "./beta_simulator_windows/data"}
+    )
+    X_train, X_valid, y_train, y_valid = (
+        data["X_train"], data["X_valid"], data["y_train"], data["y_valid"]
+    )
     for images, angles in batch_generator(
-            X_train, y_train,
+            X_valid, y_valid,
             batch_size=32,
-            use_augmentations=False,
-            use_left=True,
-            use_right=True,
+            is_eval=True,
+            use_left=False,
+            use_right=False,
             image_height=200,
             image_width=350
     ):
@@ -167,4 +175,4 @@ if __name__ == "__main__":
             )
 
             cv2.imshow("image", image)
-            cv2.waitKey(0)
+            cv2.waitKey(1)
