@@ -13,18 +13,19 @@ Version of socketio and engineio must be as follows:
 
 ### First time
 
-1. Run the command
+1. Select the Pytho.3.11 as interpreter
+2. Run the command
 
    ```bash
    git lfs install
    ```
    
-2. Clone the repository
+3. Clone the repository
 
    ```bash
    git clone https://github.com/PavelBryz/ISY503.git
    ```
-3. Install all packages used in the project
+4. Install all packages used in the project
     
 ### How to run on PyCharm
 1. Open the PyCharm
