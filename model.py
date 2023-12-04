@@ -11,11 +11,14 @@ from keras.callbacks import ModelCheckpoint
 #what types of layers do we want our model to have?
 from keras.layers import Lambda, Conv2D, MaxPooling2D, Dropout, Dense, Flatten
 #helper class to define input shape and generate training images given image paths & steering angles
-from utils import INPUT_SHAPE, batch_generator
+from data_preprocessing import batch_generator
 #for command line arguments
 import argparse
 #for reading files
 import os
+
+IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS = 66, 200, 3
+INPUT_SHAPE = (IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS)
 
 #for debugging, allows for reproducible (deterministic) results 
 np.random.seed(0)
@@ -26,13 +29,16 @@ def load_data(args):
     Load training data and split it into training and validation set
     """
     #reads CSV file into a single dataframe variable
-    data_df = pd.read_csv(os.path.join(os.getcwd(), args.data_dir, r'C:\Users\pavel\OneDrive - Torrens Global Education Services\University\Trimester 3\Intelligent Systems\Assesment3\beta_simulator_windows\data\driving_log.csv'), names=['center', 'left', 'right', 'steering', 'throttle', 'reverse', 'speed'])
+    #data_df = pd.read_csv(os.path.join(os.getcwd(), args.data_dir, r'C:\Users\pavel\OneDrive - Torrens Global Education Services\University\Trimester 3\Intelligent Systems\Assesment3\beta_simulator_windows\data\driving_log.csv'), names=['center', 'left', 'right', 'steering', 'throttle', 'reverse', 'speed'])
+    data_df = pd.read_csv(os.path.join(os.getcwd(), args.data_dir,
+                                       '/Users/rimma_vakhreeva/PycharmProjects/ISY503/beta_simulator_windows/data/updated_driving_log.csv'),
+                          names=['center', 'left', 'right', 'steering', 'throttle', 'reverse', 'speed'])
 
     #yay dataframes, we can select rows and columns by their names
     #we'll store the camera images as our input data
-    X = data_df[['center', 'left', 'right']].values
+    X = data_df[['center', 'left', 'right']]
     #and our steering commands as our output data
-    y = data_df['steering'].values
+    y = data_df['steering']
 
     #now we can split the data into a training (80), testing(20), and validation set
     #thanks scikit learn
