@@ -103,8 +103,8 @@ def batch_generator(
     :yield: A batch of images and corresponding steering angles.
     """
 
-    def _prepare_image(image, ):
-        image = preprocess_img(load_image(image), image_width=image_width, image_height=image_height)
+    def _prepare_image(path: str):
+        image = preprocess_img(load_image(Path(path)), image_width=image_width, image_height=image_height)
         if use_augmentations:
             image = apply_augmentations(image)
         image = normalize_image(image)
