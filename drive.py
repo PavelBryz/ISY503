@@ -14,6 +14,7 @@ from utils import preprocess
 # Path to the trained model file.
 MODEL_PATH = "model-010.h5"
 
+
 class TelemetryServer:
     def __init__(self, model):
         # Initializing server and wrapping Flask with socketio.
@@ -52,9 +53,10 @@ class TelemetryServer:
             "steer",
             data={
                 'steering_angle': steering_angle.__str__(),
-                'throttle': throttle.__str__()
+                'throttle'      : throttle.__str__()
             },
             skip_sid=True)
+
 
 class Driver:
     def __init__(self, model, max_speed: int = 25, min_speed: int = 10):
@@ -86,6 +88,7 @@ class Driver:
         else:
             # Default steering angle if no model is loaded.
             return 0.0
+
 
 if __name__ == '__main__':
     # Initializing and starting the telemetry server.
