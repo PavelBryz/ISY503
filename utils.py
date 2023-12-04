@@ -157,4 +157,3 @@ def batch_generator(data_dir, image_paths, steering_angles, batch_size, is_train
             if i == batch_size:
                 break
         yield images, steers
-
