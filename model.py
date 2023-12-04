@@ -25,42 +25,22 @@ def load_data(args):
     """
     Load training data and split it into training and validation set
     """
-    #reads CSV file into a single dataframe variable
-    data_df = pd.read_csv(os.path.join(os.getcwd(), args.data_dir, r'beta_simulator_windows\data\driving_log.csv'), names=['center', 'left', 'right', 'steering', 'throttle', 'reverse', 'speed'])
+    # Change r'beta_simulator_windows\data\driving_log.csv' to path / full path to driving_log file.
+    # inside driving_log.csv you will see paths to images taken from  of left / right / central cameras
+    # E:\PythonScripts\Ass\beta_simulator_windows\data\IMG\center_2023_12_02_04_39_08_845.jpg....
+    # Change E:\PythonScripts\Ass\ to your path
 
-    #yay dataframes, we can select rows and columns by their names
-    #we'll store the camera images as our input data
+
+    data_df = pd.read_csv(os.path.join(os.getcwd(), args.data_dir, r'beta_simulator_windows\data\driving_log.csv'), names=['center', 'left', 'right', 'steering', 'throttle', 'reverse', 'speed'])
     X = data_df[['center', 'left', 'right']].values
-    #and our steering commands as our output data
     y = data_df['steering'].values
 
-    #now we can split the data into a training (80), testing(20), and validation set
-    #thanks scikit learn
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=args.test_size, random_state=0)
 
     return X_train, X_valid, y_train, y_valid
 
 
 def build_model(args):
-    """
-    NVIDIA model used
-    Image normalization to avoid saturation and make gradients work better.
-    Convolution: 5x5, filter: 24, strides: 2x2, activation: ELU
-    Convolution: 5x5, filter: 36, strides: 2x2, activation: ELU
-    Convolution: 5x5, filter: 48, strides: 2x2, activation: ELU
-    Convolution: 3x3, filter: 64, strides: 1x1, activation: ELU
-    Convolution: 3x3, filter: 64, strides: 1x1, activation: ELU
-    Drop out (0.5)
-    Fully connected: neurons: 100, activation: ELU
-    Fully connected: neurons: 50, activation: ELU
-    Fully connected: neurons: 10, activation: ELU
-    Fully connected: neurons: 1 (output)
-
-    # the convolution layers are meant to handle feature engineering
-    the fully connected layer for predicting the steering angle.
-    dropout avoids overfitting
-    ELU(Exponential linear unit) function takes care of the Vanishing gradient problem.
-    """
     model = Sequential([
         Lambda(lambda x: x / 127.5 - 1.0, input_shape=INPUT_SHAPE),
         Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
@@ -81,32 +61,12 @@ def train_model(model, args, X_train, X_valid, y_train, y_valid):
     """
     Train the model
     """
-    #Saves the model after every epoch.
-    #quantity to monitor, verbosity i.e logging mode (0 or 1),
-    #if save_best_only is true the latest best model according to the quantity monitored will not be overwritten.
-    #mode: one of {auto, min, max}. If save_best_only=True, the decision to overwrite the current save file is
-    # made based on either the maximization or the minimization of the monitored quantity. For val_acc,
-    #this should be max, for val_loss this should be min, etc. In auto mode, the direction is automatically
-    # inferred from the name of the monitored quantity.
     checkpoint = ModelCheckpoint('model-{epoch:03d}.h5',
                                  monitor='val_loss',
                                  verbose=0,
                                  mode='auto')
 
-    #calculate the difference between expected steering angle and actual steering angle
-    #square the difference
-    #add up all those differences for as many data points as we have
-    #divide by the number of them
-    #that value is our mean squared error! this is what we want to minimize via
-    #gradient descent
     model.compile(loss='mean_squared_error', optimizer=Adam(lr=args.learning_rate))
-
-    #Fits the model on data generated batch-by-batch by a Python generator.
-
-    #The generator is run in parallel to the model, for efficiency.
-    #For instance, this allows you to do real-time data augmentation on images on CPU in
-    #parallel to training your model on GPU.
-    #so we reshape our data into their appropriate batches and train our model simulatenously
     model.fit_generator(batch_generator(args.data_dir, X_train, y_train, args.batch_size, True),
                         args.samples_per_epoch,
                         args.nb_epoch,
@@ -114,7 +74,6 @@ def train_model(model, args, X_train, X_valid, y_train, y_valid):
                         callbacks=[checkpoint],
                         verbose=1)
 
-#for command line args
 def s2b(s):
     """
     Converts a string to boolean value
