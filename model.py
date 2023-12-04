@@ -6,6 +6,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.layers import Conv2D, MaxPooling2D, Dense, Activation, InputLayer, BatchNormalization, GlobalAveragePooling2D
 from keras.models import Sequential
 from keras.optimizers import Adam
+
 from sklearn.model_selection import train_test_split
 
 from data_preprocessing import batch_generator
@@ -35,8 +36,8 @@ def load_data():
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.30, random_state=0)
 
-    return X_train, X_valid, y_train, y_valid
 
+    return X_train, X_valid, y_train, y_valid
 
 def make_model():
     model = Sequential()
@@ -91,9 +92,11 @@ def make_model():
     model.add(Dense(128, use_bias=False))
     model.add(BatchNormalization())
     model.add(Activation('elu'))
+
     model.summary()
 
     return model
+
 
 
 def train_model(model, X_train, X_valid, y_train, y_valid):
