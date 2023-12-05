@@ -1,6 +1,7 @@
 import base64
 from io import BytesIO
 
+import cv2
 import eventlet
 import eventlet.wsgi
 import numpy as np
@@ -9,10 +10,8 @@ from PIL import Image
 from flask import Flask
 from keras.models import load_model
 
-from utils import preprocess
-
 # Path to the trained model file.
-MODEL_PATH = "model-010.h5"
+MODEL_PATH = "model.h5"
 
 
 class TelemetryServer:
@@ -84,7 +83,10 @@ class Driver:
         if self.model:
             image = Image.open(BytesIO(base64.b64decode(self.imgString)))
             image_array = np.asarray(image)
-            return float(self.model.predict(preprocess(image_array)[None, :, :, :], batch_size=1))
+            image_array = image_array[60:-25, :, :]
+            image_array = cv2.resize(image_array, (200, 66), cv2.INTER_AREA)
+            image_array = cv2.cvtColor(image_array, cv2.COLOR_RGB2YUV)
+            return float(self.model.predict(image_array[None, :, :, :], batch_size=1))
         else:
             # Default steering angle if no model is loaded.
             return 0.0
