@@ -34,8 +34,10 @@ Version of socketio and engineio must be as follows:
    
 ### How to run the simulator
 1. Install Unity Game Engine
-2. Select the model.h5
-3. Create the video
+2. Download and unzip game files
+3. Run beta_simulator.exe
+4. Run dryve.py with selected model.h5
+6. Create the video
    
 ### Collaborators
 This project was developed collaboratively by the following students of the ISY503 Intelligent Systems course:
