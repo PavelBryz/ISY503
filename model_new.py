@@ -9,8 +9,8 @@ from utils import INPUT_SHAPE, batch_generator
 import os
 from pathlib import Path
 
-np.random.seed(0)
 
+#constants
 TEST_SIZE = 0.2
 KEEP_PROB = 0.5
 NB_EPOCH = 10
@@ -18,6 +18,9 @@ SAMPLES_PER_EPOCH = 20000
 BATCH_SIZE = 40
 SAVE_BEST_ONLY = 'true'
 LEARNING_RATE = 1.0e-4
+
+np.random.seed(0)
+
 
 def get_data_folder():
     data_dir = Path(__file__).parent / 'assets' / 'data'
@@ -35,13 +38,15 @@ def get_driving_data(data_dir):
     return pd.read_csv(data_dir / 'driving_log.csv', names=['center', 'left', 'right', 'steering', 'throttle',
                                                             'reverse', 'speed'])
 
-def get_file_path():
+
+def get_checkpoint_filepath():
     result_folder = 'results'
 
     if not os.path.exists(result_folder):
         os.makedirs(result_folder)
 
     return os.path.join(result_folder, 'model-{epoch:03d}.h5')
+
 
 def load_data(data_dir):
     driving_data = get_driving_data(data_dir)
@@ -54,10 +59,10 @@ def load_data(data_dir):
     return X_train, X_valid, y_train, y_valid
 
 
-def build_model(activation_type, kernel_size, pool_size, strides):
+def build_model(input_shape, activation_type, kernel_size, pool_size, strides):
     model = Sequential([
         Lambda(lambda x: x / 127.5 - 1.0, input_shape=INPUT_SHAPE),
-        Conv2D(32, kernel_size, activation=activation_type, input_shape=(28, 28, 1)),
+        Conv2D(32, kernel_size, activation=activation_type, input_shape=input_shape),
         MaxPooling2D(pool_size, strides),
         Conv2D(64, kernel_size, activation=activation_type),
         MaxPooling2D(pool_size, strides),
@@ -72,20 +77,26 @@ def build_model(activation_type, kernel_size, pool_size, strides):
 
     return model
 
+def compile_model(model):
+    model.compile(loss='mean_squared_error', optimizer=Adam(lr=LEARNING_RATE))
 
-def train_model(model, data_dir, X_train, y_train):
-    checkpoint = ModelCheckpoint(get_file_path(),
+
+def fit_model(model, data_dir, X_train, y_train):
+    checkpoint = ModelCheckpoint(get_checkpoint_filepath(),
                                  monitor='val_loss',
                                  verbose=0,
                                  mode='auto')
-
-    model.compile(loss='mean_squared_error', optimizer=Adam(lr=LEARNING_RATE))
 
     model.fit_generator(batch_generator(data_dir, X_train, y_train, BATCH_SIZE, True),
                         SAMPLES_PER_EPOCH,
                         NB_EPOCH,
                         callbacks=[checkpoint],
                         verbose=1)
+
+
+def train_model(model, data_dir, X_train, y_train):
+    compile_model(model)
+    fit_model(model, data_dir, X_train, y_train)
 
 def main():
     data_dir = get_data_folder()
@@ -94,7 +105,7 @@ def main():
     X_train, X_valid, y_train, y_valid = load_data(data_dir)
 
     #create the model
-    model = build_model('relu', (3, 3), 2, 2)
+    model = build_model((28, 28, 1), 'relu', (3, 3), 2, 2)
 
     #train model on data, it saves as model.h5
     train_model(model, data_dir, X_train, y_train)
