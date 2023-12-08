@@ -2,7 +2,8 @@ import os
 import random
 from itertools import count
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
+
 import albumentations as A
 import cv2
 import numpy as np
@@ -12,7 +13,6 @@ from keras.layers import Lambda, Conv2D, Dropout, Dense, Flatten
 from keras.models import Sequential
 from keras.optimizers import Adam
 from sklearn.model_selection import train_test_split
-
 
 # constants
 TEST_SIZE = 0.3
@@ -264,6 +264,7 @@ def compile_model(model):
     '''
     model.compile(loss='mean_squared_error', optimizer=Adam(learning_rate=LEARNING_RATE))
 
+
 def create_data_generator(X_data, y_data, is_eval=False):
     '''
     Creates a data generator using batch_generator for training or validation.
@@ -279,14 +280,14 @@ def create_data_generator(X_data, y_data, is_eval=False):
 
 def train_model(model, X_train, X_valid, y_train, y_valid):
     '''
-       Trains the given model using the provided training and validation datasets.
+   Trains the given model using the provided training and validation datasets.
 
-       :param model: The neural network model to be trained.
-       :param X_train: The training dataset (input features).
-       :param X_valid: The validation dataset (input features).
-       :param y_train: The training dataset (target labels).
-       :param y_valid: The validation dataset (target labels).
-       :return: None
+   :param model: The neural network model to be trained.
+   :param X_train: The training dataset (input features).
+   :param X_valid: The validation dataset (input features).
+   :param y_train: The training dataset (target labels).
+   :param y_valid: The validation dataset (target labels).
+   :return: None
     '''
 
     file_path = get_checkpoint_filepath()
@@ -306,16 +307,56 @@ def train_model(model, X_train, X_valid, y_train, y_valid):
                         verbose=1)
 
 
+def load_test_data(
+        images_path: Path
+) -> List[Dict[str, Any]]:
+    return (
+            [{"camera": "forward", "path": p} for p in (images_path / "Forward").iterdir()] +
+            [{"camera": "left", "path": p} for p in (images_path / "Left").iterdir()] +
+            [{"camera": "right", "path": p} for p in (images_path / "Right").iterdir()]
+    )
+
+
+def test_model(
+        model: Sequential,
+        data: List[Dict[str, Any]],
+):
+    _, height, width, _ = model.input_shape
+    for info in data:
+        camera, path = info["camera"], info["path"]
+        image = cv2.resize(cv2.imread(str(path)), (width, height), cv2.INTER_AREA)
+        angle = model.predict(
+            normalize_image(image).reshape(1, height, width, 3).astype(np.float32)
+        )[0]
+
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        cv2.putText(
+            image,
+            f"{float(angle):.4f}",
+            (5, 15),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5, (0, 0, 255), 1, cv2.LINE_AA
+        )
+        cv2.putText(
+            image,
+            camera,
+            (5, 30),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5, (0, 0, 255), 1, cv2.LINE_AA
+        )
+        cv2.imshow("image", image)
+        cv2.waitKey(0)
+
+
 def main():
     '''
-        Main function to execute the training process of a neural network model.
+    Main function to execute the training process of a neural network model.
 
-        This function performs the following steps:
-        1. Retrieves the data directory using get_data_folder().
-        2. Loads the training and validation datasets using load_data().
-        3. Builds a neural network model using build_model() with 'elu' as the activation function.
-        4. Trains the model using train_model() with the loaded datasets.
-
+    This function performs the following steps:
+    1. Retrieves the data directory using get_data_folder().
+    2. Loads the training and validation datasets using load_data().
+    3. Builds a neural network model using build_model() with 'elu' as the activation function.
+    4. Trains the model using train_model() with the loaded datasets.
     '''
 
     data_dir = get_data_folder()
