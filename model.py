@@ -62,10 +62,10 @@ def get_checkpoint_filepath():
 
 def load_image(image_path: Path) -> np.ndarray:
     """
-        Load an image from a given path and convert it from BGR to RGB color space.
+    Load an image from a given path and convert it from BGR to RGB color space.
 
-        :param image_path: The path to the image file.
-        :return: The loaded image in RGB format or None if the path is invalid.
+    :param image_path: The path to the image file.
+    :return: The loaded image in RGB format or None if the path is invalid.
     """
 
     # Load image using OpenCV
@@ -84,10 +84,10 @@ def preprocess_img(
         image_height: int
 ) -> np.ndarray:
     """
-        Preprocess the image by cropping and resizing it.
+    Preprocess the image by cropping and resizing it.
 
-        :param image: The input image.
-        :return: The preprocessed image.
+    :param image: The input image.
+    :return: The preprocessed image.
     """
 
     # Crop and resize the image
@@ -99,10 +99,10 @@ def preprocess_img(
 
 def apply_augmentations(image: np.ndarray) -> np.ndarray:
     """
-        Apply a series of augmentations to the image to enhance the dataset variety.
+    Apply a series of augmentations to the image to enhance the dataset variety.
 
-        :param image: The input image.
-        :return: The augmented image.
+    :param image: The input image.
+    :return: The augmented image.
     """
 
     # Seed for reproducibility of augmentations
@@ -128,10 +128,10 @@ def apply_augmentations(image: np.ndarray) -> np.ndarray:
 
 def normalize_image(image: np.ndarray) -> np.ndarray:
     """
-            Normalize the image by scaling pixel values to the range [0, 1].
+    Normalize the image by scaling pixel values to the range [0, 1].
 
-            :param image: The input image.
-            :return: Normalized image.
+    :param image: The input image.
+    :return: Normalized image.
     """
 
     # Assert that the image is not empty
@@ -171,9 +171,11 @@ def batch_generator(
 
         :param data: DataFrame containing image paths and steering angles.
         :param batch_size: Number of image sets to include in each batch.
-        :param is_eval: ...
+        :param is_eval: Boolean indicating whether the generator is used for evaluation.
         :param use_left: Boolean indicating whether to include left images.
         :param use_right: Boolean indicating whether to include right images.
+        :param image_height: The height to which the images will be resized.
+        :param image_width: The width to which the images will be resized.
         :yield: A batch of images and corresponding steering angles.
     """
 
@@ -310,6 +312,23 @@ def train_model(model, X_train, X_valid, y_train, y_valid):
 def load_test_data(
         images_path: Path
 ) -> List[Dict[str, Any]]:
+    """
+    Load test data from given directories.
+
+    This function loads image paths from three subdirectories (Forward, Left, Right)
+    within a given path. Each image path is stored in a dictionary with the associated
+    camera direction.
+
+    Parameters:
+    images_path (Path): The base path where the image directories are located.
+
+    Returns:
+    List[Dict[str, Any]]: A list of dictionaries, each containing the camera direction
+                          and the corresponding image path.
+    """
+
+    # Load image paths from the "forward", "left", and "right" directory and
+    # tag them with the "forward", "left", and "right" camera label
     return (
             [{"camera": "forward", "path": p} for p in (images_path / "Forward").iterdir()] +
             [{"camera": "left", "path": p} for p in (images_path / "Left").iterdir()] +
@@ -321,15 +340,38 @@ def test_model(
         model: Sequential,
         data: List[Dict[str, Any]],
 ):
+    """
+    Test a model using the provided data.
+
+    This function tests a given model by predicting angles for each image in the data list.
+    It also visualizes each image with the predicted angle and camera label.
+
+    Parameters:
+    model (Sequential): The model to be tested.
+    data (List[Dict[str, Any]]): The data to test the model on, which is a list of dictionaries
+                                 containing camera information and image paths.
+
+    Returns:
+    None: This function does not return anything but displays each image with predictions.
+    """
+    # Extract the input shape of the model
     _, height, width, _ = model.input_shape
+
+    # Iterate over each image in the data
     for info in data:
+        # Extract camera type and image path from the current data item
         camera, path = info["camera"], info["path"]
+        # Read and resize the image to match the model's input shape
         image = cv2.resize(cv2.imread(str(path)), (width, height), cv2.INTER_AREA)
+        # Predict the angle using the model
         angle = model.predict(
             normalize_image(image).reshape(1, height, width, 3).astype(np.float32)
         )[0]
 
+        # Convert the image from BGR to RGB color space (as OpenCV loads images in BGR)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        # Put the predicted angle text on the image
         cv2.putText(
             image,
             f"{float(angle):.4f}",
@@ -337,6 +379,8 @@ def test_model(
             cv2.FONT_HERSHEY_SIMPLEX,
             0.5, (0, 0, 255), 1, cv2.LINE_AA
         )
+
+        # Put the camera label on the image
         cv2.putText(
             image,
             camera,
@@ -344,7 +388,9 @@ def test_model(
             cv2.FONT_HERSHEY_SIMPLEX,
             0.5, (0, 0, 255), 1, cv2.LINE_AA
         )
+        # Display the image
         cv2.imshow("image", image)
+        # Wait for a key press before moving to the next image
         cv2.waitKey(0)
 
 
